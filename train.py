@@ -53,6 +53,7 @@ def data_gen(V, batch, nbatches):
 V = 11
 criterion = LabelSmoothing(size=V, padding_idx=0, smoothing=0.0)
 model = make_model(V, V, N=2)
+print(model)
 model_opt = get_std_opt(model)
 for epoch in range(2):
     train_epoch(data_gen(V, 30, 20), model, criterion, model_opt)

@@ -124,6 +124,7 @@ class GPT2(nn.Module):
     
     def forward(self, src, labels=None, pos_ids=None):
         if pos_ids is None: pos_ids = torch.arange(0, src.size(-1)).unsqueeze(0)
+        pos_ids = pos_ids.to("cuda")
         inp = self.drop((self.wte(src)+self.wpe(pos_ids)))
         for i in range(self.nlayers): inp = self.h[i](inp)
         inp     = self.ln_f(inp)
@@ -137,26 +138,3 @@ class GPT2(nn.Module):
             outputs = (loss,) + outputs
             return outputs
         return logits
-
-model = GPT2()
-model_dict = model.state_dict() #currently with random initialization
-state_dict = torch.load("./gpt2-pytorch_model.bin") #pretrained weights
-
-old_keys = []
-new_keys = []
-for key in state_dict.keys(): 
-    if "mlp" in key: #The hugging face state dict references the feedforward network as mlp, need to replace to `feedforward` be able to reuse these weights
-        new_key = key.replace("mlp", "feedforward")
-        new_keys.append(new_key)
-        old_keys.append(key)
-
-for old_key, new_key in zip(old_keys, new_keys): 
-    state_dict[new_key]=state_dict.pop(old_key)
-
-pretrained_dict = {k: v for k, v in state_dict.items() if k in model_dict}
-
-model_dict.update(pretrained_dict)
-model.load_state_dict(model_dict)
-model.eval() #model in inference mode as it's now initialized with pretrained weights
-
-# print(model)

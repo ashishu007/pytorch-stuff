@@ -99,10 +99,13 @@ def train(
             input_tensor = input_tensor.to(device)
             # outputs = model(input_tensor)
             print("input_tensor.size", input_tensor.size())
+            # outputs = model(input_tensor)
             outputs = model(input_tensor, labels=input_tensor)
             print("outputs.size", len(outputs))
+            # loss = outputs
             loss = outputs[0]
             print("loss.size", loss.size())
+            print("loss[0]", loss.item())
             loss.backward()
 
             if (accumulating_batch_count % batch_size) == 0:
@@ -132,26 +135,29 @@ print("\ndataset loaded\n")
 
 
 model_g = GPT2()
-model_dict = model_g.state_dict() #currently with random initialization
-state_dict = torch.load("./gpt2-pytorch_model.bin") #pretrained weights
-# state_dict = state_dict.to("cuda")
 
-old_keys = []
-new_keys = []
-for key in state_dict.keys(): 
-    if "mlp" in key: #The hugging face state dict references the feedforward network as mlp, need to replace to `feedforward` be able to reuse these weights
-        new_key = key.replace("mlp", "feedforward")
-        new_keys.append(new_key)
-        old_keys.append(key)
+# model_dict = model_g.state_dict() #currently with random initialization
+# state_dict = torch.load("./gpt2-pytorch_model.bin") #pretrained weights
+# # state_dict = state_dict.to("cuda")
 
-for old_key, new_key in zip(old_keys, new_keys): 
-    state_dict[new_key]=state_dict.pop(old_key)
+# old_keys = []
+# new_keys = []
+# for key in state_dict.keys(): 
+#     if "mlp" in key: #The hugging face state dict references the feedforward network as mlp, need to replace to `feedforward` be able to reuse these weights
+#         new_key = key.replace("mlp", "feedforward")
+#         new_keys.append(new_key)
+#         old_keys.append(key)
 
-pretrained_dict = {k: v for k, v in state_dict.items() if k in model_dict}
+# for old_key, new_key in zip(old_keys, new_keys): 
+#     state_dict[new_key]=state_dict.pop(old_key)
+
+# pretrained_dict = {k: v for k, v in state_dict.items() if k in model_dict}
 
 
-model_dict.update(pretrained_dict)
-model_g.load_state_dict(model_dict)
+# model_dict.update(pretrained_dict)
+# model_g.load_state_dict(model_dict)
+
+
 # model_g.eval() #model in inference mode as it's now initialized with pretrained weights
 # model_g.to("cuda")
 # print(model_g)
@@ -165,7 +171,7 @@ model_g_tr = train(
     # GPT2LMHeadModel.from_pretrained(gpt2_type),
     GPT2Tokenizer.from_pretrained(gpt2_type),
     batch_size=16,
-    epochs=2,
+    epochs=1,
     lr=3e-5,
     max_seq_len=140,
     warmup_steps=5000,
@@ -205,9 +211,13 @@ model_g_tr = train(
 #             # Using top-p (nucleus sampling): https://github.com/huggingface/transformers/blob/master/examples/run_generation.py
 
 #             for i in range(entry_length):
-#                 # outputs = model(generated)
-#                 outputs = model(generated, labels=generated)
-#                 loss, logits = outputs[:2]
+#                 outputs = model(generated)
+                
+#                 # outputs = model(generated, labels=generated)
+#                 # loss, logits = outputs[:2]
+
+#                 logits = outputs
+                
 #                 logits = logits[:, -1, :] / (temperature if temperature > 0 else 1.0)
 
 #                 sorted_logits, sorted_indices = torch.sort(logits, descending=True)

@@ -113,6 +113,7 @@ import time
 import numpy as np
 
 g, features, labels, mask = load_cora_data()
+type(g)
 
 # create the model, 2 heads, each head has hidden size 8
 net = GAT(g,

@@ -1,10 +1,13 @@
 from gatenc import GAT
 from gptdec import GPT2
+from onmt.Models import GCNEncoder_DGL
+from utils import lazily_load_dataset, load_fields, tally_parameters
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+import glob
 import numpy as np
 
 class Graph2Seq(nn.Module):
@@ -16,74 +19,33 @@ class Graph2Seq(nn.Module):
         # self.tgt = tgt
 
     def forward(self, features):
-        graph_enc = self.encoder(features)
+        h1, h2, memory_bank = self.encoder(features)
+        # graph_enc = self.encoder(features)
         # avg_enc = torch.mean(graph_enc, 1)
-        output = self.decoder(graph_enc)
+        output = self.decoder(memory_bank)
         return output
 
 def make_model(g, in_dim, hidden_dim, out_dim, num_heads):
     model = Graph2Seq(
-        GAT(g, in_dim, hidden_dim, out_dim, num_heads),
+        # GAT(g, in_dim, hidden_dim, out_dim, num_heads),
+        GCNEncoder_DGL(),
         GPT2()
     )
 
     return model
 
+dataset = next(lazily_load_dataset("train"))
+print(dataset.examples[0].__dict__)
+print(dataset)
 
-from dgl import DGLGraph
-from dgl.data import citation_graph as citegrh
-import networkx as nx
+data_type = dataset.data_type     # data_type: GCN
+# Load fields generated from preprocess phase.
+fields = load_fields(dataset, data_type, None) # checkpoint = None
+print(type(fields))
+print(fields)
 
-def load_cora_data():
-    data = citegrh.load_cora()
-    features = torch.FloatTensor(data.features)
-    labels = torch.LongTensor(data.labels)
-    mask = torch.BoolTensor(data.train_mask)
-    g = DGLGraph(data.graph)
-    return g, features, labels, mask
+# gcn_num_inputs=256, gcn_num_labels=5, gcn_num_layers=2, gcn_num_units=256, gcn_out_arcs=True, gcn_residual='residual', gcn_use_gates=False, gcn_use_glus=False
 
-import time
-import numpy as np
-
-g, features, labels, mask = load_cora_data()
-
-
-tmp_model = make_model(g, 512, 1024, 768, 2)
-# print(tmp_model)
-
-# create optimizer
-optimizer = torch.optim.Adam(tmp_model.parameters(), lr=1e-3)
-
-print("type(g)", type(g))
-print("features.size()", features.size())
-print("len(labels)", len(labels))
-print("labels[0]", labels[0])
-
-# main loop
-dur = []
-for epoch in range(1):
-    if epoch >= 3:
-        t0 = time.time()
-
-    logits = tmp_model(features)
-    print("logits.size()", logits.size())
-    print("logits[0]", logits[0])
-    
-    logp = F.log_softmax(logits, 1)
-    # print(logp.size())
-    # print(logp[0])
-    
-    loss = F.nll_loss(logp[mask], labels[mask])
-
-    # t1 = time.time()
-    # print(t1 - t0)
-    
-    optimizer.zero_grad()
-    loss.backward()
-    optimizer.step()
-
-    if epoch >= 3:
-        dur.append(time.time() - t0)
-
-    print("Epoch {:05d} | Loss {:.4f} | Time(s) {:.4f}".format(
-        epoch, loss.item(), np.mean(dur)))
+# model = make_model()  # D: gcn features must be passed here
+# tally_parameters(model)     # print the parameter size
+# check_save_model_path()     # check if the model path exist

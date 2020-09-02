@@ -124,19 +124,20 @@ net = GAT(g,
 # create optimizer
 optimizer = torch.optim.Adam(net.parameters(), lr=1e-3)
 
-# print(type(g))
-# print(features.size())
-# print(len(labels))
+print("type(g)", type(g))
+print("features.size()", features.size())
+print("len(labels)", len(labels))
+print("labels[0]", labels[0])
 
 # main loop
 dur = []
-for epoch in range(30):
+for epoch in range(1):
     if epoch >= 3:
         t0 = time.time()
 
     logits = net(features)
-    # print(logits.size())
-    # print(logits[0])
+    print("logits.size()", logits.size())
+    print("logits[0]", logits[0])
     
     logp = F.log_softmax(logits, 1)
     # print(logp.size())

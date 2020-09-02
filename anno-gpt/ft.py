@@ -206,7 +206,7 @@ model_g_tr = train(
 #             entry_finished = False
 
 #             generated = torch.tensor(tokenizer.encode(prompt)).unsqueeze(0)
-#             generated = generated.to("cuda")
+#             generated = generated.to("cuda") # get the dimension of generated
 
 #             # Using top-p (nucleus sampling): https://github.com/huggingface/transformers/blob/master/examples/run_generation.py
 

@@ -79,4 +79,6 @@ class GAT(nn.Module):
         h = self.layer1(h)
         h = F.elu(h)
         h = self.layer2(h)
-        return h
+        avg_h = torch.mean(h, 1)
+        return avg_h
+        # return h

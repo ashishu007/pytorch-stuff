@@ -125,7 +125,10 @@ class GPT2(nn.Module):
     def forward(self, src, labels=None, pos_ids=None):
         if pos_ids is None: pos_ids = torch.arange(0, src.size(-1)).unsqueeze(0)
         pos_ids = pos_ids.to("cuda")
-        inp = self.drop((self.wte(src)+self.wpe(pos_ids)))
+
+        # inp = self.drop((self.wte(src)+self.wpe(pos_ids)))
+        inp = self.drop((src+self.wpe(pos_ids))) # get the dimension of src
+        
         for i in range(self.nlayers): inp = self.h[i](inp)
         inp     = self.ln_f(inp)
         logits  = self.out(inp)

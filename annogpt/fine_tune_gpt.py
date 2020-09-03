@@ -130,40 +130,27 @@ gpt2_type = "gpt2"
 
 print("\ndataset loaded\n")
 
-# print(dataset.size())
-
-
-
 model_g = GPT2()
 
-# model_dict = model_g.state_dict() #currently with random initialization
-# state_dict = torch.load("./gpt2-pytorch_model.bin") #pretrained weights
-# # state_dict = state_dict.to("cuda")
+model_dict = model_g.state_dict() #currently with random initialization
+state_dict = torch.load("./gpt2-pytorch_model.bin") #pretrained weights
 
-# old_keys = []
-# new_keys = []
-# for key in state_dict.keys(): 
-#     if "mlp" in key: #The hugging face state dict references the feedforward network as mlp, need to replace to `feedforward` be able to reuse these weights
-#         new_key = key.replace("mlp", "feedforward")
-#         new_keys.append(new_key)
-#         old_keys.append(key)
+old_keys = []
+new_keys = []
+for key in state_dict.keys(): 
+    if "mlp" in key: #The hugging face state dict references the feedforward network as mlp, need to replace to `feedforward` be able to reuse these weights
+        new_key = key.replace("mlp", "feedforward")
+        new_keys.append(new_key)
+        old_keys.append(key)
 
-# for old_key, new_key in zip(old_keys, new_keys): 
-#     state_dict[new_key]=state_dict.pop(old_key)
+for old_key, new_key in zip(old_keys, new_keys): 
+    state_dict[new_key]=state_dict.pop(old_key)
 
-# pretrained_dict = {k: v for k, v in state_dict.items() if k in model_dict}
-
-
-# model_dict.update(pretrained_dict)
-# model_g.load_state_dict(model_dict)
+pretrained_dict = {k: v for k, v in state_dict.items() if k in model_dict}
 
 
-# model_g.eval() #model in inference mode as it's now initialized with pretrained weights
-# model_g.to("cuda")
-# print(model_g)
-
-# print(model_g)
-# print(GPT2LMHeadModel.from_pretrained(gpt2_type))
+model_dict.update(pretrained_dict)
+model_g.load_state_dict(model_dict)
 
 model_g_tr = train(
     dataset,
@@ -181,6 +168,24 @@ model_g_tr = train(
     output_prefix="twitter",
     save_model_on_epoch=True
 )
+
+tokenizer = GPT2Tokenizer.from_pretrained(gpt2_type)
+context   = torch.tensor([tokenizer.encode("<|tweet|> The planet earth")])
+print(context)
+
+def generate(context, ntok=20):
+    for _ in range(ntok):
+        out = model(context)
+        logits = out[:, -1, :]
+        indices_to_remove = logits < torch.topk(logits, 10)[0][..., -1, None]
+        logits[indices_to_remove] = np.NINF
+        next_tok = torch.multinomial(F.softmax(logits, dim=-1), num_samples=1).squeeze(1)
+        context = torch.cat([context, next_tok.unsqueeze(-1)], dim=-1)
+    return context
+
+out = generate(context, ntok=20)
+print(tokenizer.decode(out[0]))
+
 
 # def generate(
 #     model,

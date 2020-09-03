@@ -98,14 +98,14 @@ def train(
 
             input_tensor = input_tensor.to(device)
             # outputs = model(input_tensor)
-            print("input_tensor.size", input_tensor.size())
+            # print("input_tensor.size", input_tensor.size())
             # outputs = model(input_tensor)
             outputs = model(input_tensor, labels=input_tensor)
-            print("outputs.size", len(outputs))
+            # print("outputs.size", len(outputs))
             # loss = outputs
             loss = outputs[0]
-            print("loss.size", loss.size())
-            print("loss[0]", loss.item())
+            # print("loss.size", loss.size())
+            # print("loss[0]", loss.item())
             loss.backward()
 
             if (accumulating_batch_count % batch_size) == 0:
@@ -158,22 +158,23 @@ model_g_tr = train(
     # GPT2LMHeadModel.from_pretrained(gpt2_type),
     GPT2Tokenizer.from_pretrained(gpt2_type),
     batch_size=16,
-    epochs=1,
+    epochs=5,
     lr=3e-5,
     max_seq_len=140,
     warmup_steps=5000,
     gpt2_type=gpt2_type,
     device="cuda",
-    output_dir="trained_models",
+    output_dir=".",
     output_prefix="twitter",
-    save_model_on_epoch=True
+    save_model_on_epoch=False
 )
 
 tokenizer = GPT2Tokenizer.from_pretrained(gpt2_type)
 context   = torch.tensor([tokenizer.encode("<|tweet|> The planet earth")])
 print(context)
+context = context.to("cuda")
 
-def generate(context, ntok=20):
+def generate(model, context, ntok=20):
     for _ in range(ntok):
         out = model(context)
         logits = out[:, -1, :]
@@ -183,93 +184,7 @@ def generate(context, ntok=20):
         context = torch.cat([context, next_tok.unsqueeze(-1)], dim=-1)
     return context
 
-out = generate(context, ntok=20)
+model_g_tr.eval()
+
+out = generate(model_g_tr, context, ntok=20)
 print(tokenizer.decode(out[0]))
-
-
-# def generate(
-#     model,
-#     tokenizer,
-#     prompt,
-#     entry_count=10,
-#     entry_length=100,
-#     top_p=0.8,
-#     temperature=1.,
-# ):
-
-#     model.eval()
-
-#     generated_num = 0
-#     generated_list = []
-
-#     filter_value = -float("Inf")
-
-#     with torch.no_grad():
-
-#         for entry_idx in trange(entry_count):
-
-#             entry_finished = False
-
-#             generated = torch.tensor(tokenizer.encode(prompt)).unsqueeze(0)
-#             generated = generated.to("cuda") # get the dimension of generated
-
-#             # Using top-p (nucleus sampling): https://github.com/huggingface/transformers/blob/master/examples/run_generation.py
-
-#             for i in range(entry_length):
-#                 outputs = model(generated)
-                
-#                 # outputs = model(generated, labels=generated)
-#                 # loss, logits = outputs[:2]
-
-#                 logits = outputs
-                
-#                 logits = logits[:, -1, :] / (temperature if temperature > 0 else 1.0)
-
-#                 sorted_logits, sorted_indices = torch.sort(logits, descending=True)
-#                 cumulative_probs = torch.cumsum(
-#                     F.softmax(sorted_logits, dim=-1), dim=-1
-#                 )
-
-#                 sorted_indices_to_remove = cumulative_probs > top_p
-#                 sorted_indices_to_remove[..., 1:] = sorted_indices_to_remove[
-#                     ..., :-1
-#                 ].clone()
-#                 sorted_indices_to_remove[..., 0] = 0
-
-#                 indices_to_remove = sorted_indices[sorted_indices_to_remove]
-#                 logits[:, indices_to_remove] = filter_value
-
-#                 next_token = torch.multinomial(F.softmax(logits, dim=-1), num_samples=1)
-#                 generated = torch.cat((generated, next_token), dim=1)
-
-#                 if next_token in tokenizer.encode("<|endoftext|>"):
-#                     entry_finished = True
-
-#                 if entry_finished:
-
-#                     generated_num = generated_num + 1
-
-#                     output_numpy = generated.squeeze().cpu()
-#                     output_list = list(output_numpy)
-
-#                     # output_list = list(generated.squeeze().numpy())
-#                     output_text = tokenizer.decode(output_list)
-
-#                     generated_list.append(output_text)
-#                     break
-            
-#             if not entry_finished:
-#                 output_numpy = generated.squeeze().cpu()
-#                 output_list = list(output_numpy)
-#                 # output_list = list(generated.squeeze().numpy())
-#                 output_text = f"{tokenizer.decode(output_list)}<|endoftext|>" 
-#                 generated_list.append(output_text)
-                
-#     return generated_list
-
-
-
-# generated_tweets = generate(model_g_tr, GPT2Tokenizer.from_pretrained(gpt2_type),"<|tweet|>",entry_count=10)
-# # generated_tweets = generate(model.to('cpu'), GPT2Tokenizer.from_pretrained(gpt2_type),"<|tweet|>",entry_count=10)
-
-# print(generated_tweets)

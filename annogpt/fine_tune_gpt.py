@@ -123,12 +123,12 @@ def train(
             )
     return model
 
-print("\nloading dataset\n")
+# print("\nloading dataset\n")
 
-dataset = CSVTwitter("<|tweet|>", truncate=True, gpt2_type="gpt2")
-gpt2_type = "gpt2"
+# dataset = CSVTwitter("<|tweet|>", truncate=True, gpt2_type="gpt2")
+# gpt2_type = "gpt2"
 
-print("\ndataset loaded\n")
+# print("\ndataset loaded\n")
 
 model_g = GPT2()
 
@@ -152,39 +152,41 @@ pretrained_dict = {k: v for k, v in state_dict.items() if k in model_dict}
 model_dict.update(pretrained_dict)
 model_g.load_state_dict(model_dict)
 
-model_g_tr = train(
-    dataset,
-    model_g,
-    # GPT2LMHeadModel.from_pretrained(gpt2_type),
-    GPT2Tokenizer.from_pretrained(gpt2_type),
-    batch_size=16,
-    epochs=5,
-    lr=3e-5,
-    max_seq_len=140,
-    warmup_steps=5000,
-    gpt2_type=gpt2_type,
-    device="cuda",
-    output_dir=".",
-    output_prefix="twitter",
-    save_model_on_epoch=False
-)
+print(list(state_dict.keys()))
 
-tokenizer = GPT2Tokenizer.from_pretrained(gpt2_type)
-context   = torch.tensor([tokenizer.encode("<|tweet|> The planet earth")])
-print(context)
-context = context.to("cuda")
+# model_g_tr = train(
+#     dataset,
+#     model_g,
+#     # GPT2LMHeadModel.from_pretrained(gpt2_type),
+#     GPT2Tokenizer.from_pretrained(gpt2_type),
+#     batch_size=16,
+#     epochs=5,
+#     lr=3e-5,
+#     max_seq_len=140,
+#     warmup_steps=5000,
+#     gpt2_type=gpt2_type,
+#     device="cuda",
+#     output_dir=".",
+#     output_prefix="twitter",
+#     save_model_on_epoch=False
+# )
 
-def generate(model, context, ntok=20):
-    for _ in range(ntok):
-        out = model(context)
-        logits = out[:, -1, :]
-        indices_to_remove = logits < torch.topk(logits, 10)[0][..., -1, None]
-        logits[indices_to_remove] = np.NINF
-        next_tok = torch.multinomial(F.softmax(logits, dim=-1), num_samples=1).squeeze(1)
-        context = torch.cat([context, next_tok.unsqueeze(-1)], dim=-1)
-    return context
+# tokenizer = GPT2Tokenizer.from_pretrained(gpt2_type)
+# context   = torch.tensor([tokenizer.encode("<|tweet|> The planet earth")])
+# print(context)
+# context = context.to("cuda")
 
-model_g_tr.eval()
+# def generate(model, context, ntok=20):
+#     for _ in range(ntok):
+#         out = model(context)
+#         logits = out[:, -1, :]
+#         indices_to_remove = logits < torch.topk(logits, 10)[0][..., -1, None]
+#         logits[indices_to_remove] = np.NINF
+#         next_tok = torch.multinomial(F.softmax(logits, dim=-1), num_samples=1).squeeze(1)
+#         context = torch.cat([context, next_tok.unsqueeze(-1)], dim=-1)
+#     return context
 
-out = generate(model_g_tr, context, ntok=20)
-print(tokenizer.decode(out[0]))
+# model_g_tr.eval()
+
+# out = generate(model_g_tr, context, ntok=20)
+# print(tokenizer.decode(out[0]))
